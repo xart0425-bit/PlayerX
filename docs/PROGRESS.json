@@ -1,0 +1,432 @@
+{
+  "title": "PlayerX 개발 진행 상황",
+  "asOf": "2026-09-06",
+  "stages": [
+    {
+      "no": 1,
+      "name": "재생과 프레임 이동",
+      "note": "완료. app/ 4개 모듈(mpv_loader·timecode·player·main_window)과 검증 도구 3종이 실제로 있고, docs/BUILD-LOG.md 에 3개 테스트 파일 통과 기록이 남아 있다. 계획서상 2단계였던 '뒤로 이동을 절대 seek 으로' 는 여기서 미리 처리했다(단, 아직 PTS 인덱스가 아니라 fps 계산 기반).",
+      "tasks": [
+        {
+          "id": "1-1",
+          "label": "libmpv-2.dll 탐색 + os.add_dll_directory() 로딩 (없으면 안내 대화상자)",
+          "done": true,
+          "tag": "DLL"
+        },
+        {
+          "id": "1-2",
+          "label": "PySide6 창에 libmpv 임베드 (winId 를 wid 로 전달)",
+          "done": true,
+          "tag": "재생"
+        },
+        {
+          "id": "1-3",
+          "label": "파일 열기 — 메뉴(Ctrl+O) · 드래그앤드롭 · 명령줄 인자",
+          "done": true,
+          "tag": "재생"
+        },
+        {
+          "id": "1-4",
+          "label": "재생 / 정지 (Space)",
+          "done": true,
+          "tag": "재생"
+        },
+        {
+          "id": "1-5",
+          "label": "←/→ 1프레임, Shift 10프레임, Ctrl 100프레임, Home/End 이동",
+          "done": true,
+          "tag": "프레임"
+        },
+        {
+          "id": "1-6",
+          "label": "프레임 번호 · 타임코드(HH:MM:SS:FF) · 전체 프레임 수 표시",
+          "done": true,
+          "tag": "프레임"
+        },
+        {
+          "id": "1-7",
+          "label": "타임라인 슬라이더 (프레임 단위 seek)",
+          "done": true,
+          "tag": "UI"
+        },
+        {
+          "id": "1-8",
+          "label": "파일 정보 패널 — 코덱 · 해상도 · 픽셀포맷 · 색공간 · fps · 하드웨어 디코딩",
+          "done": true,
+          "tag": "UI"
+        },
+        {
+          "id": "1-9",
+          "label": "되감기 캐시 mpv 옵션 (demuxer-seekable-cache · cache-secs · hr-seek)",
+          "done": true,
+          "tag": "정확도"
+        },
+        {
+          "id": "1-10",
+          "label": "검증 도구 — test_timecode.py · verify_frame_accuracy.py · smoke_gui.py",
+          "done": true,
+          "tag": "검증"
+        },
+        {
+          "id": "1-11",
+          "label": "프레임 번호가 박힌 테스트 영상 3종 (60fps mkv · 120fps mkv · 23.976fps mp4)",
+          "done": true,
+          "tag": "검증"
+        },
+        {
+          "id": "1-12",
+          "label": "README.md · requirements.txt · .gitignore",
+          "done": true,
+          "tag": "문서"
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "name": "프레임 정확도와 캡쳐",
+      "note": "완료. app/ 에 모듈 3개가 새로 생겼다(frame_index·capture·workers). 프레임 번호와 이동이 fps 추정에서 PTS 인덱스 기반으로 넘어갔고(VFR 파일로 실측 확인), S 로 원본 해상도 무손실 PNG 캡쳐가 된다(10bit 소스는 16bit PNG, 색 range/matrix 명시 고정). 인덱스는 백그라운드 스레드로 만들며 진행률을 표시하고 '<영상파일>.idx.json' 으로 캐시한다(재열기 66배 빠름, 원본이 바뀌면 폐기). 검증은 tools/verify_index_capture.py (영상 5개, --with-mpv 포함)와 tools/smoke_gui.py(영상 5개) 전부 통과. 계획서와 달리 Pillow 대신 FFmpeg png 인코더를 쓴다 — Pillow 은 16bit RGB PNG 를 못 쓴다. 자세한 경위는 docs/BUILD-LOG.md.",
+      "tasks": [
+        {
+          "id": "2-1",
+          "label": "뒤로 이동을 mpv frame-back-step 대신 절대 seek 으로 처리",
+          "done": true,
+          "tag": "정확도"
+        },
+        {
+          "id": "2-2",
+          "label": "PTS 양자화 보정 (반올림) · SEEK_LEAD 로 목표 프레임 착지 보정",
+          "done": true,
+          "tag": "정확도"
+        },
+        {
+          "id": "2-3",
+          "label": "PyAV 의존성 추가 및 디코딩 경로 구성",
+          "done": true,
+          "tag": "PyAV"
+        },
+        {
+          "id": "2-4",
+          "label": "파일 전체 PTS 인덱스(프레임 표) 생성",
+          "done": true,
+          "tag": "PyAV"
+        },
+        {
+          "id": "2-5",
+          "label": "인덱싱을 백그라운드 스레드로 + 진행률 표시",
+          "done": true,
+          "tag": "PyAV"
+        },
+        {
+          "id": "2-6",
+          "label": "인덱스를 '파일명.idx.json' 으로 캐시 (재열기 시 즉시 로드)",
+          "done": true,
+          "tag": "PyAV"
+        },
+        {
+          "id": "2-7",
+          "label": "프레임 번호/이동을 fps 추정에서 PTS 인덱스 기반으로 교체 (VFR 대응)",
+          "done": true,
+          "tag": "정확도"
+        },
+        {
+          "id": "2-8",
+          "label": "무손실 PNG 캡쳐 — 원본 해상도, 화면 스케일·OSD 영향 없음",
+          "done": true,
+          "tag": "캡쳐"
+        },
+        {
+          "id": "2-9",
+          "label": "10bit 소스를 16bit PNG 로 저장 (색 range/matrix 명시 고정)",
+          "done": true,
+          "tag": "캡쳐"
+        },
+        {
+          "id": "2-10",
+          "label": "S 단축키 · 캡쳐 버튼 연결",
+          "done": true,
+          "tag": "캡쳐"
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "name": "비교 모드",
+      "note": "완료. '비교' 탭이 생겼고 mpv 인스턴스는 3개다(재생 1 + 비교 A/B 2, 기동 시 161MB). A 가 마스터고 B 는 'A 프레임 + 오프셋'에 묶인다 — 기본값은 정지 + 프레임 잠금. 좌우 분할은 위젯을 나눠 배치하고, 와이프는 두 위젯을 겹친 뒤 setMask() 로 잘라 낸다(위젯을 줄이면 영상이 축소돼서 와이프가 안 된다). 차분은 mpv 가 아니라 PyAV 로 원본을 다시 디코딩해 16bit 공간에서 빼고 증폭해 보여 준다(PSNR·최대·평균 같이 표시). 검증은 tools/smoke_compare.py — B 가 A 를 7프레임 밀어 놓은 테스트 쌍으로, 오프셋 +7 에서 차분이 정확히 0 이고 +8 에서는 0 이 아님을 픽셀로 확인한다. 드리프트 보정은 같은 fps 에서 최대 1프레임(허용치 2). 비교 탭 캡쳐는 범위 밖이라 넣지 않았다. 자세한 경위는 docs/BUILD-LOG.md.",
+      "tasks": [
+        {
+          "id": "3-1",
+          "label": "비교 탭 UI (A/B 파일 선택 줄 · 공용 타임라인)",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-2",
+          "label": "mpv 인스턴스 2개 임베드",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-3",
+          "label": "같은 프레임 번호로 잠금 동기화 (기본값: 정지 상태)",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-4",
+          "label": "좌우 분할 모드",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-5",
+          "label": "슬라이더 와이프 모드",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-6",
+          "label": "차분(diff) 모드 — NumPy 연산",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-7",
+          "label": "프레임 오프셋 입력칸 (시작점 다른 두 영상 정렬)",
+          "done": true,
+          "tag": "비교"
+        },
+        {
+          "id": "3-8",
+          "label": "연속 재생 시 A 를 마스터로 B 위치 주기적 보정 (드리프트 대응)",
+          "done": true,
+          "tag": "비교"
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "name": "트림과 클립",
+      "note": "완료. '트림/클립' 탭이 생겼다 — 왼쪽 클립 목록(IN/OUT/길이/무손실 시작), 오른쪽 미리보기, 아래에 '무손실로 내보내기'와 '정확히 자르기(재인코딩)' 두 버튼. I 로 IN, O 로 OUT(누르면 그 자리에서 클립이 된다), [ ] 로 클립 사이 이동. 목록은 '<영상파일>.clips.json' 으로 저장하고 영상을 열 때 옆에 있으면 자동으로 읽는다. vendor/ffmpeg.exe 는 tools/fetch_ffmpeg.py 로 받는다(기본 LGPL, --gpl 로 x264 포함 빌드) — 인코더를 코드에 박지 않고 'ffmpeg -encoders' 로 탐지해서 있는 것만 UI 에 내놓고, 기본값은 무손실 ffv1 이다. 2단계 인덱스의 키프레임 목록 덕분에 자르기 전에 '무손실은 실제로 몇 번 프레임부터 시작될지'를 예고한다(4-9). 검증은 tools/smoke_trim.py — 잘라 낸 파일을 우리 인덱서로 다시 읽어 프레임 수와 픽셀을 원본과 대조해서, 예고가 맞았음을 결과물로 확인한다. 한 번에 한 클립만 내보낸다(일괄 내보내기는 범위 밖). 자세한 경위는 docs/BUILD-LOG.md.",
+      "tasks": [
+        {
+          "id": "4-1",
+          "label": "트림/클립 탭 UI (왼쪽 클립 목록 · 오른쪽 미리보기)",
+          "done": true,
+          "tag": "트림"
+        },
+        {
+          "id": "4-2",
+          "label": "IN/OUT 마킹 (I · O 단축키)",
+          "done": true,
+          "tag": "클립"
+        },
+        {
+          "id": "4-3",
+          "label": "클립 목록 관리 (IN/OUT/길이)",
+          "done": true,
+          "tag": "클립"
+        },
+        {
+          "id": "4-4",
+          "label": "클립 간 이동 단축키 ([ · ])",
+          "done": true,
+          "tag": "클립"
+        },
+        {
+          "id": "4-5",
+          "label": "클립 목록 JSON 저장 / 불러오기",
+          "done": true,
+          "tag": "클립"
+        },
+        {
+          "id": "4-6",
+          "label": "ffmpeg.exe 동봉 (vendor/)",
+          "done": true,
+          "tag": "트림"
+        },
+        {
+          "id": "4-7",
+          "label": "무손실 컷 — ffmpeg -c copy remux",
+          "done": true,
+          "tag": "트림"
+        },
+        {
+          "id": "4-8",
+          "label": "정확 컷 — 재인코딩 옵션 (무손실 버튼과 명시적으로 분리)",
+          "done": true,
+          "tag": "트림"
+        },
+        {
+          "id": "4-9",
+          "label": "가장 가까운 키프레임 위치를 UI 에 미리 표시",
+          "done": true,
+          "tag": "트림"
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "name": "마감과 배포",
+      "note": "완료. '설정' 메뉴에서 하드웨어 디코딩(자동/d3d11va/nvdec/끄기)과 캡쳐 비트 깊이·캡쳐 폴더를 고른다 — 별도 설정 창은 없다(계획서의 '설정 화면도 최소로'). 고른 디코더가 이 PC 에서 안 되면 mpv 가 조용히 물러나므로, 정보 패널은 고른 값이 아니라 실제로 쓰이는 값을 보여 준다. 설정은 %LOCALAPPDATA%\\PlayerX\\settings.json 에 저장하고, 깨져 있으면 기본값으로 물러난다. 정보 패널에 키프레임 간격(예: '60 프레임 = 1.00초 · 총 10개')이 붙었다 — 무손실 컷이 얼마나 밀릴지의 척도다. 트림 탭의 'PNG 시퀀스로' 버튼은 구간 전체를 낱장 캡쳐와 바이트 단위로 같은 PNG 로 뽑는다(ffmpeg 이 아니라 같은 PyAV 경로). PlayerX.spec 으로 PyInstaller onedir 패키징 — dist\\PlayerX\\ 458MB, libmpv-2.dll 과 ffmpeg.exe 동봉. PyInstaller 6 은 내용물을 _internal\\ 에 넣으므로 로더가 exe 옆 -> exe 옆 vendor -> sys._MEIPASS 순으로 찾게 고쳤다. 'PlayerX.exe --selftest' 가 네이티브 의존물을 점검해 JSON 으로 적는다(묶은 앱은 콘솔이 없어 실패해도 말이 없다). 검증은 tools/smoke_settings.py 와 tools/verify_package.py — 후자는 네트워크 드라이브(UNC 공유)에서 묶은 결과물을 실제로 실행해 창이 뜨고 인덱스가 생기는 것까지 확인한다. 자세한 경위는 docs/BUILD-LOG.md.",
+      "tasks": [
+        {
+          "id": "5-1",
+          "label": "하드웨어 디코딩 on/off · 디코더 선택 UI (d3d11va / nvdec / 소프트웨어)",
+          "done": true,
+          "tag": "설정"
+        },
+        {
+          "id": "5-2",
+          "label": "키프레임 간격 표시",
+          "done": true,
+          "tag": "정보"
+        },
+        {
+          "id": "5-3",
+          "label": "PNG 시퀀스 내보내기 (구간 통째로)",
+          "done": true,
+          "tag": "내보내기"
+        },
+        {
+          "id": "5-4",
+          "label": "설정 JSON 파일 저장 / 복원",
+          "done": true,
+          "tag": "설정"
+        },
+        {
+          "id": "5-5",
+          "label": "PyInstaller onedir 패키징 (libmpv-2.dll · ffmpeg.exe 동봉)",
+          "done": true,
+          "tag": "배포"
+        },
+        {
+          "id": "5-6",
+          "label": "네트워크 드라이브(Z:) 경로에서 패키징 검증",
+          "done": true,
+          "tag": "배포"
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "name": "다듬기와 보강",
+      "note": "진행 중. 5단계까지 끝난 뒤에 나온 일들이다 — 계획서에 그림으로만 붙어 있던 화면 목업을 실제 UI 로 옮기고, 쓰면서 드러난 느림·떨림·못 찾겠는 버튼을 하나씩 고친다. **이 단계의 항목은 미리 정해 둔 게 아니라 쓰면서 생긴다** — 그래서 고칠 때마다 여기에 다시 적는다. 수치가 붙은 항목은 실제로 재서 확인한 값이고, 경위는 docs/BUILD-LOG.md 에 남긴다.",
+      "tasks": [
+        {
+          "id": "6-1",
+          "label": "화면 목업을 실제 UI 로 반영 — 테마(QSS)·아이콘·타임라인·조작 버튼·정보 패널",
+          "done": true,
+          "tag": "디자인"
+        },
+        {
+          "id": "6-2",
+          "label": "커스텀 창틀(헤더) — 옮기기 · 가장자리 크기 조절 · 최대화 · 스냅",
+          "done": true,
+          "tag": "디자인"
+        },
+        {
+          "id": "6-3",
+          "label": "세 탭을 같은 디자인 언어로 통일 (같은 타임라인 · 같은 조작 버튼)",
+          "done": true,
+          "tag": "디자인"
+        },
+        {
+          "id": "6-4",
+          "label": "재생 탭에서 IN/OUT 찍기 → 트림 탭으로 구간 인계",
+          "done": true,
+          "tag": "트림"
+        },
+        {
+          "id": "6-5",
+          "label": "프레임 번호 · 타임코드를 직접 쳐서 이동 (앞자리 생략 허용)",
+          "done": true,
+          "tag": "프레임"
+        },
+        {
+          "id": "6-6",
+          "label": "고른 클립만 재생 · 구간 반복 (설정에 저장)",
+          "done": true,
+          "tag": "클립"
+        },
+        {
+          "id": "6-7",
+          "label": "정확 컷 결과 코덱 안내 — 무손실(ffv1)은 윈도우 기본 플레이어가 못 연다",
+          "done": true,
+          "tag": "내보내기"
+        },
+        {
+          "id": "6-8",
+          "label": "'영상 열기' 를 빈 화면 · 헤더 · 각 탭에 드러내기",
+          "done": true,
+          "tag": "UI"
+        },
+        {
+          "id": "6-9",
+          "label": "타임라인 그리기 10.2ms → 0.27ms (전체 선택자 제거 + 눈금 캐시)",
+          "done": true,
+          "tag": "성능"
+        },
+        {
+          "id": "6-10",
+          "label": "비교 탭 첫 열기 2132ms → 171ms (탭을 만들어 옮기지 않고 그 자리에서 생성)",
+          "done": true,
+          "tag": "성능"
+        },
+        {
+          "id": "6-11",
+          "label": "앱 시작 6409ms → 2033ms (비교·트림 탭을 처음 열 때 만들기)",
+          "done": true,
+          "tag": "성능"
+        },
+        {
+          "id": "6-12",
+          "label": "구간 반복 시 타임라인이 0.6초 멈추던 것 → 80ms (seek 도착 판정)",
+          "done": true,
+          "tag": "성능"
+        },
+        {
+          "id": "6-13",
+          "label": "비교 탭 재생 중 영상·타임라인이 2px 위아래로 떨리던 것 (라벨 높이 고정)",
+          "done": true,
+          "tag": "디자인"
+        },
+        {
+          "id": "6-14",
+          "label": "타임코드 글자가 1px 흔들리던 것 (모노 글꼴에 한글 섞지 않기)",
+          "done": true,
+          "tag": "디자인"
+        },
+        {
+          "id": "6-15",
+          "label": "검사 도구 추가 — tools/smoke_range.py (구간 재생·반복)",
+          "done": true,
+          "tag": "검증"
+        },
+        {
+          "id": "6-16",
+          "label": "검사 도구 추가 — smoke_compare [E] 재생 중 화면 흔들림 (그린 픽셀로 확인)",
+          "done": true,
+          "tag": "검증"
+        },
+        {
+          "id": "6-17",
+          "label": "비교 탭에 앞 탭 그림이 겹쳐 보이는 문제 — 원인 미해결",
+          "done": false,
+          "tag": "비교"
+        },
+        {
+          "id": "6-18",
+          "label": "창 크기 조절이 느림 (145ms) — mpv 네이티브 창 비용, 해결책 미정",
+          "done": false,
+          "tag": "성능"
+        },
+        {
+          "id": "6-19",
+          "label": "배포판 다시 묶기 — dist/PlayerX 449MB, 실행·인덱싱까지 검증 통과",
+          "done": true,
+          "tag": "배포"
+        }
+      ]
+    }
+  ]
+}

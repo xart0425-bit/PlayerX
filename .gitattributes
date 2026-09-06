@@ -1,0 +1,9 @@
+# 줄바꿈은 저장소 안에서 LF 로 통일한다 (윈도우에서 체크아웃하면 CRLF 로 나온다).
+* text=auto
+
+# 바이너리는 건드리지 않는다.
+*.png binary
+*.mkv binary
+*.mp4 binary
+*.dll binary
+*.exe binary

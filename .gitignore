@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.pyc
+
+# 120MB 네이티브 DLL — 저장소에 넣지 않는다. README 의 설치 절차로 받는다.
+vendor/libmpv-2.dll
+vendor/ffmpeg.exe
+
+# 2단계에서 만들 프레임 인덱스 캐시
+*.idx.json
+
+# 4단계 클립 목록 (영상 옆에 생긴다)
+*.clips.json
+
+# 잘라 낸 클립
+*_lossless.mkv
+*_lossless.mp4
+*_exact.mkv
+*_exact.mp4
+
+# 검증 스크린샷
+shots/
+
+# 5단계 PyInstaller 산출물
+build/
+dist/
+selftest.json
