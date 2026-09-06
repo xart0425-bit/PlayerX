@@ -425,6 +425,12 @@
           "label": "배포판 다시 묶기 — dist/PlayerX 449MB, 실행·인덱싱까지 검증 통과",
           "done": true,
           "tag": "배포"
+        },
+        {
+          "id": "6-20",
+          "label": "GitHub 공개 저장소로 올리기 (MIT · 스크린샷 · 라이선스 표)",
+          "done": true,
+          "tag": "문서"
         }
       ]
     }
