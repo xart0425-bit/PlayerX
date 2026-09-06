@@ -338,6 +338,123 @@ class Harness:
         self.records.append({"step": "layout_steady", "shift_px": shift})
         grab("cmp_06_layout", self.out_dir)
 
+    def check_no_ghost(self) -> None:
+        """앞 탭 그림이 비교 탭 영상 자리에 비쳐 보이지 않는가.
+
+        mpv 위젯은 진짜 윈도우 창이고 `WA_OpaquePaintEvent` 가 켜져 있다 —
+        "바탕은 내가 칠한다"는 약속이라 Qt 는 안 칠한다. **파일이 없는 동안**
+        mpv 도 아무것도 안 그리면 그 창에는 그 자리에 예전에 있던 그림이 그대로
+        남는다. 실제로 재생 탭을 보다가 비교 탭으로 넘어가면 재생 탭 화면이
+        비쳐 보였다.
+
+        **위젯을 그려 보는 방법으로는 이걸 못 잡는다** (`QWidget.grab()` 은
+        네이티브 자식 창을 빼고 그리므로 언제나 깨끗하다). 그래서 윈도우에
+        "네 내용을 직접 그려라"라고 시켜서(PrintWindow) 실제 화면을 받아 온다.
+        """
+        print("\n[F] 앞 탭 그림이 비쳐 보이지 않는가", flush=True)
+
+        from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget  # noqa: PLC0415
+
+        from app.player import MpvWidget  # noqa: PLC0415
+
+        # 밝은 그림을 먼저 그려 놓는다 (= '앞 탭 화면' 역할).
+        holder = QWidget()
+        holder.setWindowTitle("ghost-check")
+        holder.setStyleSheet("background: #ffffff;")
+        holder.setAutoFillBackground(True)
+        layout = QVBoxLayout(holder)
+        label = QLabel("앞 탭 그림" * 40)
+        label.setWordWrap(True)
+        label.setStyleSheet("background: #ffffff; color: #000000; font-size: 28px;")
+        layout.addWidget(label)
+        holder.resize(700, 460)
+        holder.show()
+        pump(700)
+
+        # 그 위에 파일 없는 mpv 위젯을 덮는다. mpv 는 아무것도 안 그리므로,
+        # 위젯이 자기 바탕을 안 칠하면 아래 밝은 그림이 그대로 비친다.
+        player = MpvWidget(holder)
+        player.setGeometry(0, 0, holder.width(), holder.height())
+        player.show()
+        player.raise_()
+        pump(900)
+
+        image = self._print_window(holder)
+        if image is None:
+            self.check(False, "창 내용을 받아오지 못함", "PrintWindow 실패")
+        else:
+            # PrintWindow 는 제목 표시줄까지 같이 준다. mpv 위젯이 확실히
+            # 덮고 있는 가운데만 본다.
+            width, height = image.width(), image.height()
+            image = image.copy(int(width * 0.2), int(height * 0.35),
+                               int(width * 0.6), int(height * 0.5))
+            bright = counted = 0
+            for y in range(0, image.height(), 4):
+                for x in range(0, image.width(), 4):
+                    counted += 1
+                    pixel = image.pixel(x, y)
+                    if ((pixel >> 16 & 0xFF) + (pixel >> 8 & 0xFF) + (pixel & 0xFF)) > 150:
+                        bright += 1
+            share = bright / max(1, counted) * 100
+            image.save(str(self.out_dir / "cmp_07_ghost.png"))
+            print(f"    덮은 뒤 가운데 {image.width()}x{image.height()} · "
+                  f"밝은 픽셀 {share:.2f}%", flush=True)
+            self.check(share < 1.0, "파일 없는 mpv 위젯이 자기 바탕을 검게 칠함",
+                       f"밝은 픽셀 {share:.2f}% < 1.0%")
+
+        player.shutdown()
+        holder.close()
+        pump(300)
+
+    @staticmethod
+    def _print_window(widget):
+        """창더러 자기 내용을 직접 그리게 해서 받아 온다 (네이티브 자식 창 포함)."""
+        import ctypes  # noqa: PLC0415
+        from ctypes import wintypes  # noqa: PLC0415
+
+        from PySide6.QtGui import QImage  # noqa: PLC0415
+
+        user32, gdi32 = ctypes.windll.user32, ctypes.windll.gdi32
+        hwnd = int(widget.winId())
+        user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        rect = wintypes.RECT()
+        user32.GetWindowRect(hwnd, ctypes.byref(rect))
+        width, height = rect.right - rect.left, rect.bottom - rect.top
+        if width <= 0 or height <= 0:
+            return None
+
+        window_dc = user32.GetWindowDC(hwnd)
+        mem_dc = gdi32.CreateCompatibleDC(window_dc)
+        bitmap = gdi32.CreateCompatibleBitmap(window_dc, width, height)
+        gdi32.SelectObject(mem_dc, bitmap)
+        ok = user32.PrintWindow(hwnd, mem_dc, 0x00000002)   # PW_RENDERFULLCONTENT
+
+        image = None
+        if ok:
+            class Header(ctypes.Structure):
+                _fields_ = [("biSize", wintypes.DWORD), ("biWidth", ctypes.c_long),
+                            ("biHeight", ctypes.c_long), ("biPlanes", wintypes.WORD),
+                            ("biBitCount", wintypes.WORD),
+                            ("biCompression", wintypes.DWORD),
+                            ("biSizeImage", wintypes.DWORD),
+                            ("biXPelsPerMeter", ctypes.c_long),
+                            ("biYPelsPerMeter", ctypes.c_long),
+                            ("biClrUsed", wintypes.DWORD),
+                            ("biClrImportant", wintypes.DWORD)]
+
+            header = Header()
+            header.biSize = ctypes.sizeof(Header)
+            header.biWidth, header.biHeight = width, -height
+            header.biPlanes, header.biBitCount, header.biCompression = 1, 32, 0
+            buffer = ctypes.create_string_buffer(width * height * 4)
+            gdi32.GetDIBits(mem_dc, bitmap, 0, height, buffer, ctypes.byref(header), 0)
+            image = QImage(bytes(buffer), width, height, QImage.Format_RGB32).copy()
+
+        gdi32.DeleteObject(bitmap)
+        gdi32.DeleteDC(mem_dc)
+        user32.ReleaseDC(hwnd, window_dc)
+        return image
+
     def _ink_top(self, label, text: str) -> int:
         """라벨에 그 글자를 넣고 **실제로 그려서** 글자가 시작하는 줄을 돌려준다.
 
@@ -406,6 +523,7 @@ def main(argv: list[str]) -> int:
         h.check_modes()
     h.check_drift()
     h.check_layout_steady()
+    h.check_no_ghost()
     return h.finish()
 
 

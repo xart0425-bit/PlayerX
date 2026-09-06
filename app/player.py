@@ -22,6 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QWidget
 
 from . import timecode
@@ -96,9 +97,12 @@ class MpvWidget(QWidget):
         # mpv 가 그릴 실제 HWND 를 갖도록 강제한다.
         self.setAttribute(Qt.WA_DontCreateNativeAncestors)
         self.setAttribute(Qt.WA_NativeWindow)
+        # "이 위젯은 자기 바탕을 스스로 칠한다" 는 약속. Qt 는 그 말을 믿고
+        # 배경을 안 칠한다 — 그래서 paintEvent 에서 우리가 반드시 칠해야 한다.
+        # 안 칠하면 파일이 없는 동안 이 창에 **앞서 그려져 있던 그림이 그대로
+        # 남는다** (탭을 옮기면 앞 탭 화면이 비쳐 보이던 원인).
         self.setAttribute(Qt.WA_OpaquePaintEvent)
         self.setMinimumSize(320, 180)
-        self.setStyleSheet("background-color: #000;")
 
         self._mpv_module = load_mpv()
         self._mpv = self._mpv_module.MPV(
@@ -133,6 +137,18 @@ class MpvWidget(QWidget):
         self._poll.setInterval(self.POLL_MS)
         self._poll.timeout.connect(self._refresh)
         self._poll.start()
+
+    def paintEvent(self, event) -> None:
+        """바탕을 검게 칠한다.
+
+        영상이 올라와 있는 동안에는 mpv 가 이 창에 직접 그리므로 여기까지 올 일이
+        거의 없다. **파일이 없을 때**가 문제였다 — mpv 는 아무것도 그리지 않고,
+        `WA_OpaquePaintEvent` 때문에 Qt 도 안 칠하니, 이 창에는 이 자리에 예전에
+        있던 그림이 그대로 남아 있었다. 탭을 옮겼을 때 앞 탭 화면이 비쳐 보이던
+        게 이것이다 (스타일시트로 배경색을 줘도 소용없다 — 그 속성이 있으면
+        스타일시트 배경도 안 그린다).
+        """
+        QPainter(self).fillRect(event.rect(), QColor(0, 0, 0))
 
     # ------------------------------------------------------------------ mpv
 
