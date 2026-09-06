@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from . import applog
 from . import capture as capture_mod
 from . import icons
 from . import settings as settings_mod
@@ -632,10 +633,27 @@ class MainWindow(QMainWindow):
         self._apply_settings()
         self._warm_ffmpeg_cache()
 
+        # 1분에 한 줄씩 살아 있다고 적는다. 앱이 조용히 사라진 적이 두 번 있는데,
+        # 마지막 줄의 시각이 "언제 어떤 상태에서 죽었는가"를 알려 준다.
+        # (죽는 순간을 가로채는 방식은 쓰지 않는다 — app/applog.py 설명 참고)
+        self._heartbeat = QTimer(self)
+        self._heartbeat.setInterval(60_000)
+        self._heartbeat.timeout.connect(self._log_heartbeat)
+        self._heartbeat.start()
+        applog.write(f"창 준비됨 · 탭 {self.tabs.count()}개")
+
     # QMainWindow 의 상태 표시줄 대신 우리 것을 돌려준다. 이름을 맞춰 뒀으므로
     # self.statusBar().showMessage(...) 를 쓰던 코드는 그대로 동작한다.
     def statusBar(self) -> StatusStrip:                       # noqa: N802
         return self.status
+
+    def _log_heartbeat(self) -> None:
+        players = self._all_players()
+        opened = sum(1 for p in players if p.has_file)
+        playing = sum(1 for p in players if p.has_file and not p.paused)
+        applog.write(f"살아 있음 · 탭={self.tabs.currentIndex()} "
+                     f"mpv={len(players)}개(열림 {opened} · 재생 {playing}) "
+                     f"프레임={self.playback.player.frame}")
 
     @staticmethod
     def _warm_ffmpeg_cache() -> None:

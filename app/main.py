@@ -116,8 +116,13 @@ def main(argv: list[str] | None = None) -> int:
         rest = [a for a in argv[argv.index("--selftest") + 1:] if not a.startswith("-")]
         return selftest(rest[0] if rest else None)
 
+    from . import applog
+
+    applog.start(f"argv={argv[1:]}")
+
     app = QApplication(argv)
     app.setApplicationName("PlayerX")
+    app.aboutToQuit.connect(lambda: applog.write("===== 정상 종료 ====="))
 
     # 화면 테마는 창을 만들기 전에 입힌다 — 나중에 입히면 이미 만들어진
     # 위젯이 기본 스타일로 한 번 그려졌다가 바뀌면서 깜빡인다.

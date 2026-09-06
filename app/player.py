@@ -25,6 +25,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QWidget
 
+from . import applog
 from . import timecode
 from .frame_index import FrameIndex
 from .mpv_loader import load_mpv
@@ -154,7 +155,11 @@ class MpvWidget(QWidget):
 
     def _on_log(self, loglevel: str, component: str, message: str) -> None:
         # mpv 의 이벤트 스레드에서 불린다 — 시그널로 넘겨야 Qt 쪽이 안전하다.
-        self.mpv_message.emit(f"[{loglevel}] {component}: {message.strip()}")
+        text = f"[{loglevel}] {component}: {message.strip()}"
+        # 파일에도 남긴다. 상태 표시줄은 앱이 죽으면 같이 사라지는데,
+        # 죽기 직전 mpv 가 뱉은 경고가 유일한 단서일 때가 있다.
+        applog.write("mpv " + text)
+        self.mpv_message.emit(text)
 
     def _get(self, name: str, default=None):
         """mpv 속성 읽기. 아직 값이 없으면 default."""
