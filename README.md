@@ -321,3 +321,21 @@ libmpv · ffmpeg · PyAV 를 다 찾았는지 확인하고 `selftest.json` 에 �
   시도해서 안 된 것들까지 [docs/BUILD-LOG.md](docs/BUILD-LOG.md) 에 적어 뒀다.
 - **창 크기 조절이 느리다** (한 번에 약 145ms). 테마 때문이 아니고 (테마를 아예 빼면
   오히려 177ms), mpv 네이티브 창을 다루는 비용으로 보인다.
+
+## 라이선스
+
+**이 저장소의 코드는 MIT** 다 ([LICENSE](LICENSE)).
+
+다만 **네이티브 바이너리는 저장소에 없고, 각자의 라이선스를 따른다.**
+직접 받아서 `vendor\` 에 넣는 구조라 이 저장소를 받는 것만으로는 아무 의무도 생기지 않는다.
+
+| 무엇 | 어디서 | 라이선스 |
+|---|---|---|
+| `libmpv-2.dll` | [mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake/releases) | 빌드에 따라 GPLv2+ 또는 LGPLv2.1+ |
+| `ffmpeg.exe` | `tools\fetch_ffmpeg.py` (기본 LGPL 빌드) | LGPL, `--gpl` 로 받으면 GPL |
+| PySide6 (Qt) | pip | LGPLv3 |
+| PyAV | pip | BSD-3-Clause |
+
+**묶어서 남에게 배포할 생각이면** 넣은 빌드의 라이선스가 결과물 전체에 따라붙는다.
+GPL 빌드를 동봉하면 배포물이 GPL 이 된다 — 자세한 판단은
+[docs/BUILD-PLAN.md](docs/BUILD-PLAN.md) 10절에 적어 뒀다.
